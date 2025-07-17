@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WorkflowStateMachineApi.Models;
+using System.Security.Cryptography;
+using System.Text;
 
 // In-memory workflow state machine API for demo/interview. See README for details.
 // Models are defined in WorkflowStateMachineApi.Models
@@ -27,6 +29,42 @@ var app = builder.Build();
 // In-memory stores for workflow definitions and instances
 var workflowDefinitions = new Dictionary<string, WorkflowDefinition>();
 var workflowInstances = new Dictionary<string, WorkflowInstance>();
+
+// In-memory user store and session tokens
+var users = new Dictionary<string, User>(); // username -> User
+var sessions = new Dictionary<string, string>(); // token -> username
+
+// Helper: Hash password
+string HashPassword(string password)
+{
+    using var sha = SHA256.Create();
+    var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
+    return Convert.ToBase64String(bytes);
+}
+
+// Register endpoint
+app.MapPost("/register", ([FromBody] UserRegisterRequest req) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
+        return Results.BadRequest("Username and password are required.");
+    if (users.ContainsKey(req.Username))
+        return Results.BadRequest("Username already exists.");
+    var user = new User { Username = req.Username, PasswordHash = HashPassword(req.Password) };
+    users[req.Username] = user;
+    return Results.Ok("User registered successfully.");
+});
+
+// Login endpoint
+app.MapPost("/login", ([FromBody] UserLoginRequest req) =>
+{
+    if (!users.TryGetValue(req.Username, out var user))
+        return Results.BadRequest("Invalid username or password.");
+    if (user.PasswordHash != HashPassword(req.Password))
+        return Results.BadRequest("Invalid username or password.");
+    var token = Guid.NewGuid().ToString();
+    sessions[token] = user.Username;
+    return Results.Ok(new { Token = token });
+});
 
 // Create a new workflow definition (with validation)
 app.MapPost("/definitions", ([FromBody] WorkflowDefinition def) =>
@@ -163,4 +201,16 @@ app.Run();
 record StartInstanceRequest
 {
     public string DefinitionId { get; init; }
+}
+
+// User register/login request models
+record UserRegisterRequest
+{
+    public string Username { get; init; }
+    public string Password { get; init; }
+}
+record UserLoginRequest
+{
+    public string Username { get; init; }
+    public string Password { get; init; }
 }

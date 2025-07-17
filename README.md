@@ -6,9 +6,9 @@ A minimal .NET 8 backend service for defining and running configurable workflow 
 
 1. **Build and run:**
    ```sh
-   dotnet run
+   dotnet run --urls http://localhost:5200
    ```
-   The API will start on http://localhost:5000 (or as configured).
+   The API will start on http://localhost:5200 (or as configured).
 
 2. **No database required:**
    All data is stored in memory and lost on restart.
@@ -16,6 +16,51 @@ A minimal .NET 8 backend service for defining and running configurable workflow 
 ---
 
 ## API Overview
+
+### 0. User Registration & Login
+
+#### Register
+- **POST** `/register`
+- **Body:**
+```json
+{
+  "username": "alice",
+  "password": "password123"
+}
+```
+- **Sample curl:**
+```sh
+curl -X POST http://localhost:5200/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"password123"}'
+```
+- **Response:**
+```json
+"User registered successfully."
+```
+
+#### Login
+- **POST** `/login`
+- **Body:**
+```json
+{
+  "username": "alice",
+  "password": "password123"
+}
+```
+- **Sample curl:**
+```sh
+curl -X POST http://localhost:5200/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"password123"}'
+```
+- **Response:**
+```json
+{ "token": "some-guid-token" }
+```
+- **Note:** The token can be used for future enhancements (e.g., protecting workflow endpoints).
+
+---
 
 ### 1. Create a Workflow Definition
 
